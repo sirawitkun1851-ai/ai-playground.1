@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Playground — Mind Map</title>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --border: #1e1e2e;
+    --learn: #00e5a0;
+    --learn-dim: #00e5a020;
+    --build: #4d9fff;
+    --build-dim: #4d9fff20;
+    --create: #ff6b6b;
+    --create-dim: #ff6b6b20;
+    --center: #c084fc;
+    --center-dim: #c084fc20;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --font-display: 'Kanit', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-display);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    position: relative; z-index: 10;
+    padding: 32px 40px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 16px;
+  }
+
+  .logo {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    background: linear-gradient(90deg, var(--center), var(--learn));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .filter-bar {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+
+  .filter-btn {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 1.5px solid;
+    cursor: pointer;
+    transition: all 0.25s;
+    background: transparent;
+  }
+  .filter-btn.all   { border-color: var(--center); color: var(--center); }
+  .filter-btn.learn { border-color: var(--learn);  color: var(--learn); }
+  .filter-btn.build { border-color: var(--build);  color: var(--build); }
+  .filter-btn.create{ border-color: var(--create); color: var(--create); }
+
+  .filter-btn.active.all    { background: var(--center-dim); }
+  .filter-btn.active.learn  { background: var(--learn-dim); }
+  .filter-btn.active.build  { background: var(--build-dim); }
+  .filter-btn.active.create { background: var(--create-dim); }
+  .filter-btn:not(.active)  { opacity: 0.3; }
+
+  /* Main grid */
+  .grid {
+    position: relative; z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    padding: 0;
+  }
+
+  /* Center node */
+  .center-node {
+    grid-column: 1 / -1;
+    display: flex; justify-content: center;
+    padding: 40px 0 0;
+  }
+
+  .center-card {
+    background: var(--center-dim);
+    border: 2px solid var(--center);
+    border-radius: 20px;
+    padding: 20px 40px;
+    text-align: center;
+    position: relative;
+  }
+
+  .center-card h2 {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--center);
+    letter-spacing: 1px;
+  }
+
+  .center-card p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-family: var(--font-mono);
+  }
+
+  /* Branch connectors (decorative) */
+  .connectors {
+    grid-column: 1 / -1;
+    height: 40px;
+    position: relative;
+  }
+  .connectors svg { width: 100%; height: 100%; }
+
+  /* Branch columns */
+  .branch {
+    padding: 24px 20px 40px;
+    border-top: none;
+    transition: opacity 0.3s;
+  }
+  .branch.hidden { opacity: 0.08; pointer-events: none; }
+
+  .branch-header {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .branch-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .branch.learn .branch-icon { background: var(--learn-dim); border: 1px solid var(--learn); }
+  .branch.build .branch-icon { background: var(--build-dim); border: 1px solid var(--build); }
+  .branch.create .branch-icon { background: var(--create-dim); border: 1px solid var(--create); }
+
+  .branch-title { font-size: 20px; font-weight: 700; }
+  .branch.learn  .branch-title { color: var(--learn); }
+  .branch.build  .branch-title { color: var(--build); }
+  .branch.create .branch-title { color: var(--create); }
+
+  .branch-sub {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    margin-top: 2px;
+  }
+
+  /* Topic groups */
+  .topic-group {
+    margin-bottom: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+    cursor: pointer;
+  }
+
+  .topic-group:hover { transform: translateY(-2px); }
+  .branch.learn  .topic-group:hover { border-color: var(--learn); }
+  .branch.build  .topic-group:hover { border-color: var(--build); }
+  .branch.create .topic-group:hover { border-color: var(--create); }
+
+  .topic-header {
+    padding: 12px 14px;
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface);
+  }
+
+  .topic-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .branch.learn  .topic-dot { background: var(--learn); }
+  .branch.build  .topic-dot { background: var(--build); }
+  .branch.create .topic-dot { background: var(--create); }
+
+  .topic-name {
+    font-size: 14px;
+    font-weight: 500;
+    flex: 1;
+  }
+
+  .topic-toggle {
+    font-size: 12px;
+    color: var(--muted);
+    transition: transform 0.3s;
+  }
+  .topic-group.open .topic-toggle { transform: rotate(180deg); }
+
+  .topic-body {
+    padding: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease, padding 0.3s;
+  }
+  .topic-group.open .topic-body {
+    max-height: 400px;
+    padding: 0 14px 14px;
+  }
+
+  .sub-item {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 8px 0;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .sub-item:first-child { border-top: 1px solid var(--border); margin-top: 10px; }
+
+  .sub-bullet {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    margin-top: 3px;
+    flex-shrink: 0;
+  }
+  .branch.learn  .sub-bullet { color: var(--learn); }
+  .branch.build  .sub-bullet { color: var(--build); }
+  .branch.create .sub-bullet { color: var(--create); }
+
+  .sub-label { font-weight: 500; }
+  .sub-desc {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+    line-height: 1.5;
+    font-family: var(--font-mono);
+  }
+
+  /* Tool chips bottom */
+  .tools-row {
+    grid-column: 1 / -1;
+    padding: 20px 40px 40px;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+
+  .tools-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  .chip {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 4px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    transition: all 0.2s;
+    cursor: default;
+  }
+  .chip:hover { border-color: var(--center); color: var(--center); }
+
+  /* Dividers between columns */
+  .branch + .branch {
+    border-left: 1px solid var(--border);
+  }
+
+  /* Responsive */
+  @media (max-width: 700px) {
+    .grid { grid-template-columns: 1fr; }
+    .branch + .branch { border-left: none; border-top: 1px solid var(--border); }
+    header { padding: 20px; }
+    .connectors { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">Mind Map / AI Skills</div>
+    <h1>AI Playground</h1>
+  </div>
+  <div class="filter-bar">
+    <button class="filter-btn all active" onclick="filter('all')">ทั้งหมด</button>
+    <button class="filter-btn learn active" onclick="filter('learn')">Learn</button>
+    <button class="filter-btn build active" onclick="filter('build')">Build</button>
+    <button class="filter-btn create active" onclick="filter('create')">Create</button>
+  </div>
+</header>
+
+<div class="grid">
+
+  <!-- Center -->
+  <div class="center-node">
+    <div class="center-card">
+      <h2>AI Playground</h2>
+      <p>Learn · Build · Create</p>
+    </div>
+  </div>
+
+  <!-- Connector lines SVG -->
+  <div class="connectors">
+    <svg viewBox="0 0 900 40" preserveAspectRatio="none">
+      <line x1="150" y1="0" x2="150" y2="40" stroke="#1e1e2e" stroke-width="1"/>
+      <line x1="450" y1="0" x2="450" y2="40" stroke="#00e5a040" stroke-width="1" stroke-dasharray="4 4"/>
+      <line x1="750" y1="0" x2="750" y2="40" stroke="#1e1e2e" stroke-width="1"/>
+    </svg>
+  </div>
+
+  <!-- ===== LEARN ===== -->
+  <div class="branch learn" id="branch-learn">
+    <div class="branch-header">
+      <div class="branch-icon">🎓</div>
+      <div>
+        <div class="branch-title">Learn</div>
+        <div class="branch-sub">เรียนรู้ทักษะ AI</div>
+      </div>
+    </div>
+
+    <div class="topic-group open" onclick="toggle(this)">
+      <div class="topic-header">
+        <div class="topic-dot"></div>
+        <div class="topic-name">พื้นฐาน AI / ML</div>
+        <div class="topic-toggle">▼</div>
+      </div>
+      <div class="topic-body">
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Machine Learning คืออะไร</div>
+            <div class="sub-desc">การให้คอมพิวเตอร์เรียนรู้จากข้อมูล<br>โดยไม่ต้องโปรแกรมทุกขั้นตอน</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Deep Learning & Neural Networks</div>
+            <div class="sub-desc">โครงข่ายประสาทเทียม, layers, weights</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Supervised vs Unsupervised</div>
+            <div class="sub-desc">ประเภทของการเรียนรู้และตัวอย่างการใช้งาน</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="topic-group" onclick="toggle(this)">
+      <div class="topic-header">
+        <div class="topic-dot"></div>
+        <div class="topic-name">Prompt Engineering</div>
+        <div class="topic-toggle">▼</div>
+      </div>
+      <div class="topic-body">
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Zero-shot prompting</div>
+            <div class="sub-desc">ถามโดยตรงโดยไม่ให้ตัวอย่าง</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Few-shot prompting</div>
+            <div class="sub-desc">ให้ตัวอย่าง 2–5 ชุดก่อนถาม</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Chain-of-Thought</div>
+            <div class="sub-desc">ให้ AI คิดทีละขั้นตอน เพิ่มความแม่นยำ</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Role prompting</div>
+            <div class="sub-desc">กำหนดบทบาทให้ AI เพื่อผลลัพธ์เฉพาะทาง</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="topic-group" onclick="toggle(this)">
+      <div class="topic-header">
+        <div class="topic-dot"></div>
+        <div class="topic-name">เรียนผ่าน Tools จริง</div>
+        <div class="topic-toggle">▼</div>
+      </div>
+      <div class="topic-body">
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Google Colab</div>
+            <div class="sub-desc">รัน Python + ML บน cloud ฟรี</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Hugging Face</div>
+            <div class="sub-desc">ทดลอง model นับพัน บน browser</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">ChatGPT / Claude Playground</div>
+            <div class="sub-desc">ฝึก prompt โดยเห็นผลทันที</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="topic-group" onclick="toggle(this)">
+      <div class="topic-header">
+        <div class="topic-dot"></div>
+        <div class="topic-name">แหล่งเรียนรู้แนะนำ</div>
+        <div class="topic-toggle">▼</div>
+      </div>
+      <div class="topic-body">
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">fast.ai</div>
+            <div class="sub-desc">เรียน Deep Learning แบบ top-down</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">DeepLearning.AI</div>
+            <div class="sub-desc">คอร์สจาก Andrew Ng ระดับโลก</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">YouTube (3Blue1Brown)</div>
+            <div class="sub-desc">อธิบาย Neural Networks แบบเห็นภาพ</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== BUILD ===== -->
+  <div class="branch build" id="branch-build">
+    <div class="branch-header">
+      <div class="branch-icon">🔨</div>
+      <div>
+        <div class="branch-title">Build</div>
+        <div class="branch-sub">พัฒนาแอปด้วย AI</div>
+      </div>
+    </div>
+
+    <div class="topic-group open" onclick="toggle(this)">
+      <div class="topic-header">
+        <div class="topic-dot"></div>
+        <div class="topic-name">เลือก API & Model</div>
+        <div class="topic-toggle">▼</div>
+      </div>
+      <div class="topic-body">
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">OpenAI API</div>
+            <div class="sub-desc">GPT-4o, DALL-E, Whisper, TTS</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Anthropic Claude API</div>
+            <div class="sub-desc">Claude Sonnet/Opus สำหรับ reasoning</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Google Gemini API</div>
+            <div class="sub-desc">Multimodal, ฟรีโควต้าสูง</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Open-source (Ollama)</div>
+            <div class="sub-desc">รัน LLaMA, Mistral บนเครื่องตัวเอง</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="topic-group" onclick="toggle(this)">
+      <div class="topic-header">
+        <div class="topic-dot"></div>
+        <div class="topic-name">สร้าง Prototype</div>
+        <div class="topic-toggle">▼</div>
+      </div>
+      <div class="topic-body">
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Chatbot / AI Assistant</div>
+            <div class="sub-desc">ระบบถาม-ตอบ ด้วย conversation history</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">RAG System</div>
+            <div class="sub-desc">ให้ AI ตอบจากเอกสารของคุณเอง</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Image Generator</div>
+            <div class="sub-desc">สร้างภาพจาก text prompt</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">AI Agent</div>
+            <div class="sub-desc">AI ที่ใช้ tools และทำงานหลายขั้นตอน</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="topic-group" onclick="toggle(this)">
+      <div class="topic-header">
+        <div class="topic-dot"></div>
+        <div class="topic-name">Framework & Tools</div>
+        <div class="topic-toggle">▼</div>
+      </div>
+      <div class="topic-body">
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">LangChain / LlamaIndex</div>
+            <div class="sub-desc">สร้าง AI pipeline ซับซ้อนได้เร็ว</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Streamlit / Gradio</div>
+            <div class="sub-desc">สร้าง UI สำหรับ AI app แบบเร็ว</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Next.js + Vercel AI SDK</div>
+            <div class="sub-desc">สร้าง web app AI แบบ production</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="topic-group" onclick="toggle(this)">
+      <div class="topic-header">
+        <div class="topic-dot"></div>
+        <div class="topic-name">Deploy & Monitor</div>
+        <div class="topic-toggle">▼</div>
+      </div>
+      <div class="topic-body">
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Vercel / Render / Railway</div>
+            <div class="sub-desc">Deploy ง่าย ราคาถูก</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">AWS / GCP / Azure</div>
+            <div class="sub-desc">Scale สำหรับ production จริง</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">วัด cost & latency</div>
+            <div class="sub-desc">Track token usage, response time</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Fine-tuning</div>
+            <div class="sub-desc">ปรับ model ให้ตรงกับ use case</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CREATE ===== -->
+  <div class="branch create" id="branch-create">
+    <div class="branch-header">
+      <div class="branch-icon">✨</div>
+      <div>
+        <div class="branch-title">Create</div>
+        <div class="branch-sub">สร้างสรรค์ด้วย Generative AI</div>
+      </div>
+    </div>
+
+    <div class="topic-group open" onclick="toggle(this)">
+      <div class="topic-header">
+        <div class="topic-dot"></div>
+        <div class="topic-name">Text Generation</div>
+        <div class="topic-toggle">▼</div>
+      </div>
+      <div class="topic-body">
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Copywriting & บทความ</div>
+            <div class="sub-desc">เขียนเนื้อหาการตลาด, blog, social</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Code Generation</div>
+            <div class="sub-desc">เขียนโค้ด, debug, อธิบายโค้ด</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">สรุปและแปลภาษา</div>
+            <div class="sub-desc">Summarize เอกสาร แปลหลายภาษา</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Tools: ChatGPT, Claude, Gemini</div>
+            <div class="sub-desc">LLM ชั้นนำสำหรับ text tasks</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="topic-group" onclick="toggle(this)">
+      <div class="topic-header">
+        <div class="topic-dot"></div>
+        <div class="topic-name">Image / Video AI</div>
+        <div class="topic-toggle">▼</div>
+      </div>
+      <div class="topic-body">
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Text-to-Image</div>
+            <div class="sub-desc">Midjourney, DALL-E 3, Stable Diffusion</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Image Editing</div>
+            <div class="sub-desc">Inpainting, outpainting, style transfer</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Text-to-Video</div>
+            <div class="sub-desc">Sora, Runway, Kling AI</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Upscale & Enhance</div>
+            <div class="sub-desc">เพิ่มความละเอียดภาพด้วย AI</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="topic-group" onclick="toggle(this)">
+      <div class="topic-header">
+        <div class="topic-dot"></div>
+        <div class="topic-name">Audio / Music AI</div>
+        <div class="topic-toggle">▼</div>
+      </div>
+      <div class="topic-body">
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Text-to-Speech</div>
+            <div class="sub-desc">ElevenLabs, OpenAI TTS, Google TTS</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Voice Cloning</div>
+            <div class="sub-desc">โคลนเสียงจากตัวอย่างไม่กี่วินาที</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Music Generation</div>
+            <div class="sub-desc">Suno, Udio สร้างเพลงจาก prompt</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Speech-to-Text</div>
+            <div class="sub-desc">Whisper แปลงเสียงเป็นข้อความ</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="topic-group" onclick="toggle(this)">
+      <div class="topic-header">
+        <div class="topic-dot"></div>
+        <div class="topic-name">AI ใช้งานในชีวิตจริง</div>
+        <div class="topic-toggle">▼</div>
+      </div>
+      <div class="topic-body">
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Productivity</div>
+            <div class="sub-desc">Notion AI, Copilot, Grammarly</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Education</div>
+            <div class="sub-desc">Khan Academy AI, Duolingo Max</div>
+          </div>
+        </div>
+        <div class="sub-item">
+          <div class="sub-bullet">▸</div>
+          <div>
+            <div class="sub-label">Design</div>
+            <div class="sub-desc">Canva AI, Adobe Firefly, Figma AI</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tools footer -->
+  <div class="tools-row">
+    <span class="tools-label">Platforms</span>
+    <span class="chip">Google AI Studio</span>
+    <span class="chip">OpenAI Playground</span>
+    <span class="chip">Hugging Face Spaces</span>
+    <span class="chip">Anthropic Console</span>
+    <span class="chip">Replicate</span>
+    <span class="chip">AWS Bedrock</span>
+  </div>
+
+</div>
+
+<script>
+  function toggle(el) {
+    el.classList.toggle('open');
+  }
+
+  var current = 'all';
+  function filter(section) {
+    current = section;
+    var branches = ['learn','build','create'];
+    document.querySelectorAll('.filter-btn').forEach(function(btn) {
+      btn.classList.remove('active');
+    });
+    document.querySelector('.filter-btn.' + section).classList.add('active');
+
+    branches.forEach(function(b) {
+      var el = document.getElementById('branch-' + b);
+      if (section === 'all' || section === b) {
+        el.classList.remove('hidden');
+      } else {
+        el.classList.add('hidden');
+      }
+    });
+  }
+</script>
+</body>
+</html>
